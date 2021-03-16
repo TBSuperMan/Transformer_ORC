@@ -88,7 +88,7 @@ class LabelSmoothing(nn.Module):
 
 
 
-def val(model):
+def val():
     global max_acc,acc_data
     model.eval()
     model_val = model.module

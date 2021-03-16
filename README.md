@@ -1,4 +1,4 @@
-# Transformer_ORC
+# NRTR_Transformer_ORC
 
 复现文章(ICDAR 2019)NRTR A No-Recurrence Sequence-to-Sequence Model For Scene Text
 

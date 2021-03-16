@@ -13,13 +13,16 @@ from utils.loss import seqCrossEntropy
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="True"
 
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,0,1"
+
 train_path="D:/Document/DataSet/reg_dataset/NIPS2014"
 test_path="D:/Document/DataSet/reg_dataset/IIIT5K_3000"
 
 romte_train_path="/home/gmn/datasets/NIPS2014"
 romte_test_path="/home/gmn/datasets/IIIT5K_3000"
 test_iter=1000
-batchsize=64
+batchsize=48
 numworker=4
 imgH=48
 imgW=160
@@ -202,9 +205,15 @@ if __name__ == '__main__':
 
     # 损失函数
     loss_weight = seqCrossEntropy()
+    
+    #多卡并行
+    device_ids=[0,1,2,3]
+    model = nn.DataParallel(model,device_ids=device_ids)
+    model=model.module
+    optimizer = nn.DataParallel(optimizer, device_ids=device_ids)
+    optimizer=optimizer.module
 
-    model_opt = NoamOpt(model.tgt_embed[0].d_model, 1, 2000,
-                        torch.optim.Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
+    model_opt = NoamOpt(model.tgt_embed[0].d_model, 1, 2000, optimizer)
 
     train_iter = iter(train_dataloader)
     total_loss=0.0

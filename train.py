@@ -22,8 +22,8 @@ test_path="D:/Document/DataSet/reg_dataset/IIIT5K_3000"
 romte_train_path="/home/gmn/datasets/NIPS2014"
 romte_test_path="/home/gmn/datasets/IIIT5K_3000"
 test_iter=1000
-batchsize=48
-numworker=4
+batchsize=32
+numworker=0
 imgH=48
 imgW=160
 cuda=True
@@ -91,7 +91,6 @@ class LabelSmoothing(nn.Module):
 def val():
     global max_acc,acc_data
     model.eval()
-    model_val = model.module
     for p in model.parameters():
         p.requires_grad = False
 
@@ -101,19 +100,18 @@ def val():
     for i in range(max_iter):
         images, labels_y, labels, lengths= next(val_iter)
         batch = Batch(images, labels_y, labels)
-        images = model_val.src_embed(batch.src)
-        images = model_val.encoder(images, batch.src_mask)
+        images = model.src_embed(batch.src)
+        images = model.encoder(images, batch.src_mask)
 
         batch_size = images.size(0)
         max_len = max(lengths)
-
         tgt = torch.full((batch_size, max_len+1), labelTool.char2id['PADDING']).cuda()
         tgt[:, 0] = labelTool.char2id['<']
         for l in range(max_len):
-            tgt_now = model_val.tgt_embed(tgt[:, :l + 1].long())
+            tgt_now = model.tgt_embed(tgt[:, :l + 1].long())
             tgt_mask = torch.ones(batch_size, 1, l + 1).cuda()
-            x = model_val.decoder(tgt_now, images, batch.src_mask, tgt_mask)
-            output = model_val.generator(x)
+            x = model.decoder(tgt_now, images, batch.src_mask, tgt_mask)
+            output = model.generator(x)
             _, output = output.max(dim=-1)
             index = output[:, -1]
             tgt[:, l + 1] = index
@@ -181,7 +179,7 @@ acc_data=[]
 
 if __name__ == '__main__':
     # 日志
-    logger = get_logger(osp.join("logs", "DensRAN.logs"))
+    logger = get_logger(osp.join("logs", "NRTR.logs"))
     labelTool = Labelsmap.LabelTool()
 
     # train_lm = lmdbDataset(train_path)
@@ -199,21 +197,23 @@ if __name__ == '__main__':
     model = make_model(len(labelTool.voc)+1)
     # model.load_state_dict(torch.load('your-pretrain-model-path'))
     model.cuda()
+
     # 损失函数
     # criterion = LabelSmoothing(size=len(train_lm.char2id), padding_idx=0, smoothing=0.1)
     # criterion.cuda()
 
     # 损失函数
     loss_weight = seqCrossEntropy()
-    
+    optimizer=torch.optim.Adam(model.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9)
+
     #多卡并行
-    device_ids=[0,1,2,3]
+    device_ids=[0, 1,2,3]
     model = nn.DataParallel(model,device_ids=device_ids)
     model=model.module
     optimizer = nn.DataParallel(optimizer, device_ids=device_ids)
     optimizer=optimizer.module
 
-    model_opt = NoamOpt(model.tgt_embed[0].d_model, 1, 2000, optimizer)
+    model_opt = NoamOpt(model.tgt_embed[0].d_model, 1, 2000,optimizer)
 
     train_iter = iter(train_dataloader)
     total_loss=0.0
@@ -227,8 +227,4 @@ if __name__ == '__main__':
                 total_loss = 0.0
             if k % 1000 == 0:
                 val()
-
-
-
-
 

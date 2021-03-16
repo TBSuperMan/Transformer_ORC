@@ -3,8 +3,11 @@
 复现文章(ICDAR 2019)NRTR A No-Recurrence Sequence-to-Sequence Model For Scene Text
 
 训练数据集：Synth(NIPS2014)  
-8百万张图片
-测试数据集：IIIT5K_3000      
+
+8百万张图片 
+
+测试数据集：IIIT5K_3000     
+
 3千张图片
 
 模型：Resnet101+Transformer

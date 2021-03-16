@@ -101,8 +101,8 @@ def val():
     for i in range(max_iter):
         images, labels_y, labels, lengths= next(val_iter)
         batch = Batch(images, labels_y, labels)
-        x = model_val.src_embed(batch.src)
-        x = model_val.encoder(x, batch.src_mask)
+        images = model_val.src_embed(batch.src)
+        images = model_val.encoder(images, batch.src_mask)
 
         batch_size = images.size(0)
         max_len = max(lengths)
